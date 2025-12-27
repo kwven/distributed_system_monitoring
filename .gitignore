@@ -36,3 +36,22 @@ pnpm-debug.log*
 .coverage
 bin/
 *.test
+
+# Maven
+/target/
+**/target/
+
+# IntelliJ / Eclipse / VSCode
+.idea/
+*.iml
+.project
+.classpath
+.settings/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
