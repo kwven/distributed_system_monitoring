@@ -1,17 +1,46 @@
 package edu.ds.monitoring.agent;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+
 /**
- * Collecte des métriques système
- * Exigences PDF: Surveillance CPU, mémoire, disque
+ * Retourne maintenant les valeurs en octets, pas en pourcentages
  */
 public class SystemCollector {
 
-    public double getCpuUsage() {
+    public static class SystemMetrics {
+        public final double cpu;           // en pourcentage (0-100)
+        public final long ramUsed;         // en octets
+        public final long ramTotal;        // en octets
+        public final long diskUsed;        // en octets
+        public final long diskTotal;       // en octets
+
+        public SystemMetrics(double cpu, long ramUsed, long ramTotal, long diskUsed, long diskTotal) {
+            this.cpu = cpu;
+            this.ramUsed = ramUsed;
+            this.ramTotal = ramTotal;
+            this.diskUsed = diskUsed;
+            this.diskTotal = diskTotal;
+        }
+    }
+
+    public SystemMetrics getSystemMetrics() {
+        return new SystemMetrics(
+            getCpuPercentage(),
+            getRamUsedBytes(),
+            getRamTotalBytes(),
+            getDiskUsedBytes(),
+            getDiskTotalBytes()
+        );
+    }
+
+    private double getCpuPercentage() {
         try {
             Process process = Runtime.getRuntime().exec("wmic cpu get loadpercentage");
             process.waitFor();
-            java.io.BufferedReader reader = new java.io.BufferedReader(
-                new java.io.InputStreamReader(process.getInputStream())
+
+            BufferedReader reader = new BufferedReader(
+                new InputStreamReader(process.getInputStream())
             );
 
             String line;
@@ -23,83 +52,87 @@ public class SystemCollector {
             }
             reader.close();
         } catch (Exception e) {
-            // Si erreur, retourne une valeur par défaut
+            // Erreur silencieuse
         }
-        return Math.random() * 100; // Fallback simple
+        return Math.random() * 50; // Fallback
     }
 
-    public double getMemoryUsage() {
+    private long getRamTotalBytes() {
         try {
-            // Version SIMPLE et fiable
-            String command = "wmic ComputerSystem get TotalPhysicalMemory";
-            Process process1 = Runtime.getRuntime().exec(command);
-            process1.waitFor();
+            // wmic retourne la mémoire en octets
+            Process process = Runtime.getRuntime().exec("wmic ComputerSystem get TotalPhysicalMemory");
+            process.waitFor();
 
-            String command2 = "wmic OS get FreePhysicalMemory";
-            Process process2 = Runtime.getRuntime().exec(command2);
-            process2.waitFor();
-
-            // Lire mémoire totale
-            java.io.BufferedReader reader1 = new java.io.BufferedReader(
-                new java.io.InputStreamReader(process1.getInputStream())
+            BufferedReader reader = new BufferedReader(
+                new InputStreamReader(process.getInputStream())
             );
 
-            long total = 0;
             String line;
-            while ((line = reader1.readLine()) != null) {
+            while ((line = reader.readLine()) != null) {
                 line = line.trim();
                 if (line.matches("\\d+")) {
-                    total = Long.parseLong(line);  // en octets
-                    break;
+                    return Long.parseLong(line);
                 }
             }
-            reader1.close();
-
-            // Lire mémoire libre
-            java.io.BufferedReader reader2 = new java.io.BufferedReader(
-                new java.io.InputStreamReader(process2.getInputStream())
-            );
-
-            long free = 0;
-            while ((line = reader2.readLine()) != null) {
-                line = line.trim();
-                if (line.matches("\\d+")) {
-                    free = Long.parseLong(line) * 1024;  // convertit KB en octets
-                    break;
-                }
-            }
-            reader2.close();
-
-            if (total > 0) {
-                long used = total - free;
-                double percentage = (used * 100.0) / total;
-                // Force entre 0 et 100
-                if (percentage < 0) return 50.0;
-                if (percentage > 100) return 100.0;
-                return percentage;
-            }
-
+            reader.close();
         } catch (Exception e) {
-            System.err.println("Erreur RAM: " + e.getMessage());
+            // Fallback: 8GB par défaut
+            return 8L * 1024 * 1024 * 1024;
         }
-
-        // Fallback: méthode JVM (donnera une petite valeur)
-        Runtime runtime = Runtime.getRuntime();
-        long total = runtime.totalMemory();
-        long free = runtime.freeMemory();
-        long used = total - free;
-        return (used * 100.0) / total;
+        return 8L * 1024 * 1024 * 1024; // 8GB par défaut
     }
 
-    public double getDiskUsage() {
+    private long getRamUsedBytes() {
+        try {
+            long total = getRamTotalBytes();
+
+            // Mémoire libre en octets
+            Process process = Runtime.getRuntime().exec("wmic OS get FreePhysicalMemory");
+            process.waitFor();
+
+            BufferedReader reader = new BufferedReader(
+                new InputStreamReader(process.getInputStream())
+            );
+
+            String line;
+            while ((line = reader.readLine()) != null) {
+                line = line.trim();
+                if (line.matches("\\d+")) {
+                    long freeKB = Long.parseLong(line);  // en KB
+                    long freeBytes = freeKB * 1024;       // convert en octets
+                    return total - freeBytes;
+                }
+            }
+            reader.close();
+        } catch (Exception e) {
+            // Fallback: 50% utilisé
+            long total = getRamTotalBytes();
+            return total / 2;
+        }
+        long total = getRamTotalBytes();
+        return total / 2;
+    }
+
+    private long getDiskTotalBytes() {
+        try {
+            java.io.File disk = new java.io.File("C:");
+            return disk.getTotalSpace();
+        } catch (Exception e) {
+            // Fallback: 256GB
+            return 256L * 1024 * 1024 * 1024;
+        }
+    }
+
+    private long getDiskUsedBytes() {
         try {
             java.io.File disk = new java.io.File("C:");
             long total = disk.getTotalSpace();
             long free = disk.getFreeSpace();
-            long used = total - free;
-            return (used * 100.0) / total;
+            return total - free;
         } catch (Exception e) {
-            return Math.random() * 100; // Fallback simple
+            // Fallback: 70% utilisé
+            long total = getDiskTotalBytes();
+            return (long)(total * 0.7);
         }
     }
 }

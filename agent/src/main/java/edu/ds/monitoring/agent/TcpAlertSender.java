@@ -3,10 +3,6 @@ package edu.ds.monitoring.agent;
 import java.io.OutputStream;
 import java.net.Socket;
 
-/**
- * Alertes critiques via TCP
- * Exigences PDF: Alertes critiques via TCP
- */
 public class TcpAlertSender {
     private final String serverHost;
     private final int port;
@@ -16,18 +12,20 @@ public class TcpAlertSender {
         this.port = port;
     }
 
-    public void sendAlert(String agentId, String metric, double value, String message) {
+    public void sendAlert(String jsonAlert) {
         try {
             Socket socket = new Socket(serverHost, port);
             OutputStream output = socket.getOutputStream();
 
-            String alert = agentId + "|" + metric + "|" + value + "|" + message;
-            output.write(alert.getBytes());
+            // NDJSON: une ligne JSON par alerte
+            String ndjson = jsonAlert + "\n"; // Ajouter saut de ligne
+            output.write(ndjson.getBytes("UTF-8"));
             output.flush();
             output.close();
             socket.close();
 
-            System.out.println("Alerte TCP: " + alert);
+            System.out.println("Alerte TCP NDJSON: " + jsonAlert);
+
         } catch (Exception e) {
             System.err.println("Erreur TCP: " + e.getMessage());
         }
