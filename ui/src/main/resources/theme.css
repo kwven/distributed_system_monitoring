@@ -1,0 +1,195 @@
+/* Global dark theme */
+.root {
+  -fx-font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  -fx-base: #0f1117;
+  -fx-background-color: #0f1117;
+  -fx-text-fill: #e5e7eb;
+}
+
+.label {
+  -fx-text-fill: #e5e7eb;
+}
+
+.text-field, .combo-box, .button {
+  -fx-background-radius: 6;
+  -fx-border-radius: 6;
+  -fx-font-size: 13px;
+}
+
+.text-field, .combo-box {
+  -fx-background-color: #1a1f2b;
+  -fx-text-fill: #e5e7eb;
+  -fx-prompt-text-fill: #6b7280;
+  -fx-border-color: #2d3547;
+}
+
+.button {
+  -fx-background-color: #2563eb;
+  -fx-text-fill: #e5e7eb;
+  -fx-border-color: transparent;
+  -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.35), 8, 0.2, 0, 2);
+}
+
+.button:pressed {
+  -fx-background-color: #1e4db3;
+}
+
+.split-pane, .pane, .vbox, .hbox, .border-pane {
+  -fx-background-color: transparent;
+}
+
+/* Table styling */
+.table-view {
+  -fx-background-color: #121621;
+  -fx-border-color: #1f2735;
+  -fx-border-radius: 8;
+  -fx-background-radius: 8;
+}
+
+.table-view .column-header-background {
+  -fx-background-color: #1b2230;
+}
+
+.table-view .column-header, .table-view .filler {
+  -fx-text-fill: #e5e7eb;
+  -fx-background-color: transparent;
+}
+
+.table-view .table-row-cell {
+  -fx-background-color: #121621;
+  -fx-text-fill: #e5e7eb;
+}
+
+.table-view .table-row-cell:odd {
+  -fx-background-color: #161b28;
+}
+
+.table-view .table-row-cell:selected {
+  -fx-background-color: #1f2937;
+}
+
+.table-view .table-row-cell .label {
+  -fx-text-fill: #e5e7eb;
+}
+
+/* Force text to stay white even on colored rows */
+.table-view .table-row-cell .text {
+  -fx-fill: #ffffff;
+}
+.table-view .table-row-cell:selected .text {
+  -fx-fill: #ffffff;
+}
+
+/* Charts */
+.chart {
+  -fx-background-color: #101420;
+  -fx-text-fill: #e5e7eb;
+  -fx-border-color: #1f2735;
+  -fx-border-radius: 8;
+  -fx-background-radius: 8;
+}
+
+.chart-plot-background {
+  -fx-background-color: #101420;
+}
+
+.chart-legend {
+  -fx-background-color: transparent;
+  -fx-text-fill: #e5e7eb;
+}
+
+.chart-series-line {
+  -fx-stroke-width: 2px;
+}
+
+.default-color0.chart-series-line { -fx-stroke: #22d3ee; }
+.default-color0.chart-line-symbol { -fx-background-color: #22d3ee, #0f1117; }
+.default-color1.chart-series-line { -fx-stroke: #a855f7; }
+.default-color1.chart-line-symbol { -fx-background-color: #a855f7, #0f1117; }
+.default-color2.chart-series-line { -fx-stroke: #f97316; }
+.default-color2.chart-line-symbol { -fx-background-color: #f97316, #0f1117; }
+.chart-line-symbol { -fx-padding: 2; -fx-background-radius: 3; }
+
+/* Text colors in controls */
+.chart-title, .axis-label, .axis-tick-mark, .axis-tick-label {
+  -fx-text-fill: #cbd5e1;
+}
+
+.notifications-title, .notifications-text {
+  -fx-text-fill: #e5e7eb;
+}
+
+/* KPI cards */
+.kpi-card {
+  -fx-background-color: #161b28;
+  -fx-padding: 8 12;
+  -fx-background-radius: 10;
+  -fx-border-radius: 10;
+  -fx-border-color: #20283a;
+  -fx-alignment: CENTER_LEFT;
+  -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.25), 8, 0.2, 0, 2);
+}
+
+.kpi-card.warn {
+  -fx-border-color: #f59e0b;
+  -fx-background-color: #2b1f0f;
+}
+.kpi-card.critical {
+  -fx-border-color: #ef4444;
+  -fx-background-color: #2c1414;
+}
+.kpi-card.offline {
+  -fx-border-color: #6b7280;
+  -fx-background-color: #1f2430;
+}
+
+.kpi-label {
+  -fx-text-fill: #9ca3af;
+  -fx-font-size: 12px;
+}
+
+.kpi-value {
+  -fx-text-fill: #e5e7eb;
+  -fx-font-size: 18px;
+  -fx-font-weight: bold;
+}
+
+/* Badges for status */
+.badge {
+  -fx-padding: 3 8;
+  -fx-background-radius: 10;
+  -fx-border-radius: 10;
+  -fx-font-size: 11px;
+  -fx-font-weight: bold;
+}
+.badge-ok { -fx-background-color: #0f5132; -fx-text-fill: #d1fae5; }
+.badge-warn { -fx-background-color: #854d0e; -fx-text-fill: #fef3c7; }
+.badge-critical { -fx-background-color: #7f1d1d; -fx-text-fill: #fecdd3; }
+.badge-offline { -fx-background-color: #374151; -fx-text-fill: #e5e7eb; }
+
+/* Progress bar in table */
+.progress-bar {
+  -fx-accent: #2563eb;
+  -fx-background-insets: 0;
+  -fx-background-radius: 6;
+  -fx-padding: 2;
+}
+
+/* Tabs */
+.tab-pane .tab-header-area {
+  -fx-background-color: #0f1117;
+}
+.tab-pane .tab {
+  -fx-background-color: #161b28;
+  -fx-text-fill: #e5e7eb;
+}
+.tab-pane .tab:selected {
+  -fx-background-color: #1f2937;
+}
+
+.status-dot {
+  -fx-font-size: 14px;
+  -fx-text-fill: #ef4444;
+}
+.status-dot.connected { -fx-text-fill: #22c55e; }
+.status-dot.disconnected { -fx-text-fill: #ef4444; }

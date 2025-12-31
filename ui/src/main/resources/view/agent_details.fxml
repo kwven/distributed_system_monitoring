@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.chart.LineChart?>
+<?import javafx.scene.chart.NumberAxis?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<BorderPane xmlns="http://javafx.com/javafx"
+            xmlns:fx="http://javafx.com/fxml"
+            fx:controller="edu.ds.monitoring.ui.controller.AgentDetailsController">
+
+  <top>
+    <VBox spacing="8">
+      <padding><Insets top="12" right="12" bottom="8" left="12"/></padding>
+      <GridPane hgap="10" vgap="6">
+        <columnConstraints>
+          <ColumnConstraints minWidth="100" prefWidth="120"/>
+          <ColumnConstraints minWidth="200" prefWidth="300"/>
+        </columnConstraints>
+        <rowConstraints>
+          <RowConstraints/>
+          <RowConstraints/>
+          <RowConstraints/>
+          <RowConstraints/>
+          <RowConstraints/>
+        </rowConstraints>
+        <Label text="Agent:" GridPane.rowIndex="0" GridPane.columnIndex="0" style="-fx-font-weight: bold;"/>
+        <Label fx:id="agentLabel" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+        <Label text="Host:" GridPane.rowIndex="1" GridPane.columnIndex="0" style="-fx-font-weight: bold;"/>
+        <Label fx:id="hostLabel" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+        <Label text="IP:" GridPane.rowIndex="2" GridPane.columnIndex="0" style="-fx-font-weight: bold;"/>
+        <Label fx:id="ipLabel" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+        <Label text="Status:" GridPane.rowIndex="3" GridPane.columnIndex="0" style="-fx-font-weight: bold;"/>
+        <Label fx:id="statusLabel" GridPane.rowIndex="3" GridPane.columnIndex="1"/>
+        <Label text="Last Seen:" GridPane.rowIndex="4" GridPane.columnIndex="0" style="-fx-font-weight: bold;"/>
+        <Label fx:id="lastSeenLabel" GridPane.rowIndex="4" GridPane.columnIndex="1"/>
+      </GridPane>
+
+      <HBox spacing="10">
+        <Label text="Period:"/>
+        <ComboBox fx:id="periodCombo" prefWidth="140"/>
+        <Button fx:id="refreshButton" text="Refresh"/>
+        <Button fx:id="exportCsvButton" text="Export CSV" />
+      </HBox>
+
+      <VBox spacing="10">
+        <VBox spacing="4">
+          <HBox spacing="6" alignment="CENTER_LEFT">
+            <Label text="CPU" style="-fx-text-fill: #22d3ee; -fx-font-weight: bold;"/>
+            <Pane maxHeight="2" prefHeight="2" HBox.hgrow="ALWAYS" style="-fx-background-color: #22d3ee; -fx-opacity: 0.5;"/>
+          </HBox>
+          <HBox spacing="8">
+            <HBox spacing="6" styleClass="kpi-card">
+              <Label text="Avg CPU" styleClass="kpi-label"/>
+              <Label fx:id="statCpuAvg" styleClass="kpi-value"/>
+            </HBox>
+            <HBox spacing="6" styleClass="kpi-card">
+              <Label text="Max CPU" styleClass="kpi-label"/>
+              <Label fx:id="statCpuMax" styleClass="kpi-value"/>
+            </HBox>
+            <HBox spacing="6" styleClass="kpi-card">
+              <Label text="Min CPU" styleClass="kpi-label"/>
+              <Label fx:id="statCpuMin" styleClass="kpi-value"/>
+            </HBox>
+            <HBox spacing="6" styleClass="kpi-card">
+              <Label text="Last CPU" styleClass="kpi-label"/>
+              <Label fx:id="statCpuLast" styleClass="kpi-value"/>
+            </HBox>
+          </HBox>
+        </VBox>
+
+        <VBox spacing="4">
+          <HBox spacing="6" alignment="CENTER_LEFT">
+            <Label text="RAM" style="-fx-text-fill: #22d3ee; -fx-font-weight: bold;"/>
+            <Pane maxHeight="2" prefHeight="2" HBox.hgrow="ALWAYS" style="-fx-background-color: #22d3ee; -fx-opacity: 0.5;"/>
+          </HBox>
+          <HBox spacing="8">
+            <HBox spacing="6" styleClass="kpi-card">
+              <Label text="Avg RAM" styleClass="kpi-label"/>
+              <Label fx:id="statRamAvg" styleClass="kpi-value"/>
+            </HBox>
+            <HBox spacing="6" styleClass="kpi-card">
+              <Label text="Max RAM" styleClass="kpi-label"/>
+              <Label fx:id="statRamMax" styleClass="kpi-value"/>
+            </HBox>
+            <HBox spacing="6" styleClass="kpi-card">
+              <Label text="Min RAM" styleClass="kpi-label"/>
+              <Label fx:id="statRamMin" styleClass="kpi-value"/>
+            </HBox>
+            <HBox spacing="6" styleClass="kpi-card">
+              <Label text="Last RAM" styleClass="kpi-label"/>
+              <Label fx:id="statRamLast" styleClass="kpi-value"/>
+            </HBox>
+          </HBox>
+        </VBox>
+
+        <VBox spacing="4">
+          <HBox spacing="6" alignment="CENTER_LEFT">
+            <Label text="Disk" style="-fx-text-fill: #22d3ee; -fx-font-weight: bold;"/>
+            <Pane maxHeight="2" prefHeight="2" HBox.hgrow="ALWAYS" style="-fx-background-color: #22d3ee; -fx-opacity: 0.5;"/>
+          </HBox>
+          <HBox spacing="8">
+            <HBox spacing="6" styleClass="kpi-card">
+              <Label text="Avg Disk" styleClass="kpi-label"/>
+              <Label fx:id="statDiskAvg" styleClass="kpi-value"/>
+            </HBox>
+            <HBox spacing="6" styleClass="kpi-card">
+              <Label text="Max Disk" styleClass="kpi-label"/>
+              <Label fx:id="statDiskMax" styleClass="kpi-value"/>
+            </HBox>
+            <HBox spacing="6" styleClass="kpi-card">
+              <Label text="Min Disk" styleClass="kpi-label"/>
+              <Label fx:id="statDiskMin" styleClass="kpi-value"/>
+            </HBox>
+            <HBox spacing="6" styleClass="kpi-card">
+              <Label text="Last Disk" styleClass="kpi-label"/>
+              <Label fx:id="statDiskLast" styleClass="kpi-value"/>
+            </HBox>
+          </HBox>
+        </VBox>
+      </VBox>
+    </VBox>
+  </top>
+
+  <center>
+    <ScrollPane fitToWidth="true" fitToHeight="true" hbarPolicy="AS_NEEDED" vbarPolicy="AS_NEEDED">
+      <content>
+        <VBox spacing="12">
+          <padding><Insets top="12" right="12" bottom="12" left="12"/></padding>
+          <LineChart fx:id="cpuChart">
+            <xAxis><NumberAxis /></xAxis>
+            <yAxis><NumberAxis /></yAxis>
+          </LineChart>
+          <LineChart fx:id="ramChart">
+            <xAxis><NumberAxis /></xAxis>
+            <yAxis><NumberAxis /></yAxis>
+          </LineChart>
+          <LineChart fx:id="diskChart">
+            <xAxis><NumberAxis /></xAxis>
+            <yAxis><NumberAxis /></yAxis>
+          </LineChart>
+        </VBox>
+      </content>
+    </ScrollPane>
+  </center>
+
+</BorderPane>
