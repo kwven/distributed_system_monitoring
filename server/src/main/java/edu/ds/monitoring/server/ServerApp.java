@@ -1,6 +1,12 @@
 package edu.ds.monitoring.server;
 import edu.ds.monitoring.common.dto.ThresholdConfig;
 
+import edu.ds.monitoring.common.config.SystemConstants;
+
+import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
+
+
 
 
 
@@ -16,6 +22,20 @@ public class ServerApp {
         th.diskCritPct = 95;
 
         AgentStore store = new AgentStore();
+        try {
+            int port = SystemConstants.RMI_REGISTRY_PORT;   // même port que le UI
+            String name = "MonitoringService";              // même binding que le UI
+
+            Registry registry = LocateRegistry.createRegistry(port);
+            RmiMonitoringServiceImpl service = new RmiMonitoringServiceImpl(store);
+
+            registry.rebind(name, service);
+            System.out.println("[RMI] Bound " + name + " on port " + port);
+            } catch (Exception e) {
+                System.err.println("[RMI] Failed: " + e.getMessage());
+                e.printStackTrace();
+            }
+
 
         UdpMetricsServer udpServer = new UdpMetricsServer(NetConfig.UDP_PORT, store, th);
         Thread udpThread = new Thread(udpServer, "udp-metrics-server");

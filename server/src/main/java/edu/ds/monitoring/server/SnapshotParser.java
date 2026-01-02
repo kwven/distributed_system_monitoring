@@ -3,31 +3,41 @@ package edu.ds.monitoring.server;
 import edu.ds.monitoring.common.dto.AgentSnapshot;
 import edu.ds.monitoring.common.dto.AgentStatus;
 import edu.ds.monitoring.common.dto.ThresholdConfig;
+import edu.ds.monitoring.server.SimpleJson;
 
 public final class SnapshotParser {
     private SnapshotParser() {}
 
     public static AgentSnapshot fromJson(String json, ThresholdConfig th) {
-        String agentId = SimpleJson.getString(json, "agentId");
-        if (agentId == null) return null;
+    String agentId = SimpleJson.getString(json, "agentId");
+    if (agentId == null) return null;
 
-        Double cpuPct = SimpleJson.getDouble(json, "cpuPct");
-        Long ramUsed = SimpleJson.getLong(json, "ramUsedBytes");
-        Long ramTotal = SimpleJson.getLong(json, "ramTotalBytes");
-        Long diskUsed = SimpleJson.getLong(json, "diskUsedBytes");
-        Long diskTotal = SimpleJson.getLong(json, "diskTotalBytes");
+    String host = SimpleJson.getString(json, "host");
+    String ip = SimpleJson.getString(json, "ip");
+    Long ts = SimpleJson.getLong(json, "ts"); // ✅ l’agent envoie "ts"
 
-        AgentSnapshot s = new AgentSnapshot();
-        s.agentId = agentId;
-        s.lastSeenTs = System.currentTimeMillis();
+    Double cpuPct = SimpleJson.getDouble(json, "cpuPct");
+    Long ramUsed = SimpleJson.getLong(json, "ramUsedBytes");
+    Long ramTotal = SimpleJson.getLong(json, "ramTotalBytes");
+    Long diskUsed = SimpleJson.getLong(json, "diskUsedBytes");
+    Long diskTotal = SimpleJson.getLong(json, "diskTotalBytes");
 
-        s.cpuPct = cpuPct != null ? cpuPct : 0.0;
-        s.ramPct = pct(ramUsed, ramTotal);
-        s.diskPct = pct(diskUsed, diskTotal);
+    AgentSnapshot s = new AgentSnapshot();
+    s.agentId = agentId;
+    s.host = host;
+    s.ip = ip;
 
-        s.status = computeStatus(s, th);
-        return s;
-    }
+    // ✅ lastSeenTs doit refléter le heartbeat de l’agent si possible
+    s.lastSeenTs = (ts != null) ? ts : System.currentTimeMillis();
+
+    s.cpuPct = cpuPct != null ? cpuPct : 0.0;
+    s.ramPct = pct(ramUsed, ramTotal);
+    s.diskPct = pct(diskUsed, diskTotal);
+
+    s.status = computeStatus(s, th);
+    return s;
+}
+
 
     private static double pct(Long used, Long total) {
         if (used == null || total == null || total <= 0) return 0.0;
