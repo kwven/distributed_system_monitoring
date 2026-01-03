@@ -107,6 +107,7 @@ public class DashboardController {
   // Choix: commence avec Fake pour UI dev, puis switch RMI
   private MonitoringClient client = new FakeMonitoringClient();
   private final AtomicLong lastAlertsTs = new AtomicLong(0);
+  private boolean useRmi = false;
 
   private XYChart.Series<Number, Number> cpuSeries = new XYChart.Series<>();
   private XYChart.Series<Number, Number> ramSeries = new XYChart.Series<>();
@@ -276,6 +277,7 @@ public class DashboardController {
   public void onConnect() {
     String host = hostField.getText().trim();
     client = new RmiMonitoringClient(host);
+    useRmi = true;
     connectionLabel.setText("Connecting...");
     lastAlertsTs.set(System.currentTimeMillis());
   }
@@ -302,17 +304,22 @@ public class DashboardController {
         lastAlertsTs.set(now);
 
         Platform.runLater(() -> {
-      connectionLabel.setText("Connected (" + Instant.ofEpochMilli(now) + ")");
-      connectionDot.getStyleClass().setAll("status-dot", "connected");
-      updateAgents(agents);
-      handleAlerts(alerts);
-      updateChartsFromSelection();
+          connectionLabel.setText("Connected (" + Instant.ofEpochMilli(now) + ")");
+          connectionDot.getStyleClass().setAll("status-dot", "connected");
+          updateAgents(agents);
+          handleAlerts(alerts);
+          updateChartsFromSelection();
         });
 
       } catch (Exception ex) {
         Platform.runLater(() -> {
           connectionLabel.setText("Disconnected");
           connectionDot.getStyleClass().setAll("status-dot", "disconnected");
+          if (useRmi) {
+            client = new FakeMonitoringClient();
+            useRmi = false;
+            connectionLabel.setText("Disconnected (fallback Fake)");
+          }
         });
       }
     }, 0, SystemConstants.UI_POLL_INTERVAL_MS, TimeUnit.MILLISECONDS);

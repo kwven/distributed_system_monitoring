@@ -9,6 +9,8 @@ public class AgentMain {
     private static final int UDP_PORT = 9999;
     private static final int TCP_PORT = 9998;
     private static final int COLLECTION_INTERVAL = 2000;
+    private static boolean DEBUG = false;
+    private static long lastDebugTs = 0;
 
     // Nouveaux champs requis
     private static String HOST_NAME;
@@ -25,6 +27,9 @@ public class AgentMain {
     }
 
     public static void main(String[] args) {
+        for (String arg : args) {
+            if ("--debug".equalsIgnoreCase(arg)) DEBUG = true;
+        }
         System.out.println("Agent de Surveillance - CONTRACT v1");
         System.out.println("ID: " + AGENT_ID);
         System.out.println("Host: " + HOST_NAME);
@@ -43,6 +48,7 @@ public class AgentMain {
                     // 1. Construire le JSON UDP selon CONTRACT
                     String udpJson = buildUdpJson(metrics);
                     udpSender.send(udpJson);
+                    maybeLogDebug(udpJson, metrics);
 
                     // 2. Vérifier et envoyer alertes
                     checkAndSendAlerts(tcpSender, metrics);
@@ -149,5 +155,21 @@ public class AgentMain {
             threshold,
             message
         );
+    }
+
+    private static void maybeLogDebug(String udpJson, SystemCollector.SystemMetrics metrics) {
+        if (!DEBUG) return;
+        long now = System.currentTimeMillis();
+        if (now - lastDebugTs < 5000) return;
+        lastDebugTs = now;
+        double ramPct = (metrics.ramTotal == 0) ? 0 : (metrics.ramUsed * 100.0 / metrics.ramTotal);
+        double diskPct = (metrics.diskTotal == 0) ? 0 : (metrics.diskUsed * 100.0 / metrics.diskTotal);
+        System.out.println("[DEBUG] UDP JSON: " + udpJson);
+        System.out.println(String.format(
+            "[DEBUG] raw cpu=%.1f ramUsed=%d ramTotal=%d (%.1f%%) diskUsed=%d diskTotal=%d (%.1f%%)",
+            metrics.cpu,
+            metrics.ramUsed, metrics.ramTotal, ramPct,
+            metrics.diskUsed, metrics.diskTotal, diskPct
+        ));
     }
 }
