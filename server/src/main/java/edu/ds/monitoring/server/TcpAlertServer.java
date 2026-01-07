@@ -7,6 +7,10 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 
+import edu.ds.monitoring.common.dto.AlertEvent;
+import edu.ds.monitoring.common.dto.MetricType;
+import edu.ds.monitoring.common.dto.Severity;
+
 public class TcpAlertServer implements Runnable {
     private final int port;
     private final AlertStore store;
@@ -41,13 +45,44 @@ public class TcpAlertServer implements Runnable {
 
             String line;
             while ((line = in.readLine()) != null) {
-                String agentId = SimpleJson.getString(line, "agentId"); // si présent
-                store.update(agentId, line);
-                System.out.println("[TCP] Alert from agent=" + agentId + " -> " + line);
+                AlertEvent alert = parseAlert(line);
+                if (alert != null) {
+                    store.add(alert);
+                    System.out.println("[TCP] Alert from agent=" + alert.agentId + " -> " + line);
+                } else {
+                    System.out.println("[TCP] Invalid alert -> " + line);
+                }
             }
 
         } catch (IOException e) {
             System.err.println("[TCP] Client error: " + e.getMessage());
         }
+    }
+
+    private AlertEvent parseAlert(String json) {
+        String agentId = SimpleJson.getString(json, "agentId");
+        if (agentId == null) agentId = "UNKNOWN";
+        Long ts = SimpleJson.getLong(json, "ts");
+        String sev = SimpleJson.getString(json, "severity");
+        String metric = SimpleJson.getString(json, "metric");
+        Double value = SimpleJson.getDouble(json, "value");
+        Double threshold = SimpleJson.getDouble(json, "threshold");
+        String message = SimpleJson.getString(json, "message");
+
+        AlertEvent a = new AlertEvent();
+        a.agentId = agentId;
+        a.ts = ts != null ? ts : System.currentTimeMillis();
+        a.value = value != null ? value : 0.0;
+        a.threshold = threshold != null ? threshold : 0.0;
+        a.message = message == null ? "" : message;
+        try {
+            if (sev != null) a.severity = Severity.valueOf(sev);
+        } catch (IllegalArgumentException ignored) {
+        }
+        try {
+            if (metric != null) a.metric = MetricType.valueOf(metric);
+        } catch (IllegalArgumentException ignored) {
+        }
+        return a;
     }
 }

@@ -13,7 +13,9 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.ArrayList;
 import java.util.prefs.Preferences;
+import java.util.concurrent.CompletableFuture;
 
 import javafx.scene.chart.NumberAxis;
 import org.controlsfx.control.Notifications;
@@ -22,8 +24,10 @@ import edu.ds.monitoring.common.config.SystemConstants;
 import edu.ds.monitoring.common.dto.AgentSnapshot;
 import edu.ds.monitoring.common.dto.AgentStatus;
 import edu.ds.monitoring.common.dto.AlertEvent;
+import edu.ds.monitoring.common.dto.ThresholdConfig;
 import edu.ds.monitoring.ui.model.AgentRow;
 import edu.ds.monitoring.ui.controller.AgentDetailsController;
+import edu.ds.monitoring.ui.service.DisconnectedMonitoringClient;
 import edu.ds.monitoring.ui.service.FakeMonitoringClient;
 import edu.ds.monitoring.ui.service.MonitoringClient;
 import edu.ds.monitoring.ui.service.RmiMonitoringClient;
@@ -33,7 +37,6 @@ import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.collections.transformation.SortedList;
 import javafx.fxml.FXML;
-import javafx.scene.chart.LineChart;
 import javafx.scene.chart.XYChart;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableColumn;
@@ -49,6 +52,7 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
+import edu.ds.monitoring.ui.control.ThresholdLineChart;
 
 public class DashboardController {
 
@@ -76,9 +80,9 @@ public class DashboardController {
   @FXML private TableColumn<AgentRow, Number> colDisk;
   @FXML private TableColumn<AgentRow, AgentStatus> colStatus;
 
-  @FXML private LineChart<Number, Number> cpuChart;
-  @FXML private LineChart<Number, Number> ramChart;
-  @FXML private LineChart<Number, Number> diskChart;
+  @FXML private ThresholdLineChart cpuChart;
+  @FXML private ThresholdLineChart ramChart;
+  @FXML private ThresholdLineChart diskChart;
   @FXML private ComboBox<String> chartWindowCombo;
   @FXML private Label selectedAgentLabel;
   @FXML private ComboBox<String> alertsAgentFilter;
@@ -104,21 +108,19 @@ public class DashboardController {
   private FilteredList<AgentRow> filtered;
   private ScheduledExecutorService scheduler;
 
-  // Choix: commence avec Fake pour UI dev, puis switch RMI
-  private MonitoringClient client = new FakeMonitoringClient();
+  private enum BackendMode {
+    DISCONNECTED,
+    RMI,
+    DEMO
+  }
+
+  private MonitoringClient client = new DisconnectedMonitoringClient();
   private final AtomicLong lastAlertsTs = new AtomicLong(0);
-  private boolean useRmi = false;
+  private BackendMode mode = BackendMode.DISCONNECTED;
 
   private XYChart.Series<Number, Number> cpuSeries = new XYChart.Series<>();
   private XYChart.Series<Number, Number> ramSeries = new XYChart.Series<>();
   private XYChart.Series<Number, Number> diskSeries = new XYChart.Series<>();
-  private XYChart.Series<Number, Number> cpuWarnSeries = new XYChart.Series<>();
-  private XYChart.Series<Number, Number> cpuCritSeries = new XYChart.Series<>();
-  private XYChart.Series<Number, Number> ramWarnSeries = new XYChart.Series<>();
-  private XYChart.Series<Number, Number> ramCritSeries = new XYChart.Series<>();
-  private XYChart.Series<Number, Number> diskWarnSeries = new XYChart.Series<>();
-  private XYChart.Series<Number, Number> diskCritSeries = new XYChart.Series<>();
-
   private int chartX = 0;
   private int totalAlerts = 0;
   private String currentAgentId = null;
@@ -142,10 +144,13 @@ public class DashboardController {
   private static final DateTimeFormatter TS_FMT = DateTimeFormatter.ofPattern("HH:mm:ss");
   private final Map<String, Long> highlightUntil = new HashMap<>();
   private final Preferences prefs = Preferences.userNodeForPackage(DashboardController.class);
+  private boolean pendingThresholdPush = false;
 
   @FXML
   public void initialize() {
     hostField.setText("localhost");
+    connectionDot.getStyleClass().setAll("status-dot", "disconnected");
+    connectionLabel.setText("Disconnected");
     chartWindowCombo.getItems().addAll("Last 1 min", "Last 5 min", "Last 15 min");
     chartWindowCombo.getSelectionModel().select(0);
     chartWindowCombo.setOnAction(e -> {
@@ -155,10 +160,9 @@ public class DashboardController {
         case 2 -> 900;
         default -> 60;
       };
-      boolean c1 = updateAxisWindow(cpuChart);
-      boolean c2 = updateAxisWindow(ramChart);
-      boolean c3 = updateAxisWindow(diskChart);
-      if (c1 || c2 || c3) addThresholdLines();
+      updateAxisWindow(cpuChart);
+      updateAxisWindow(ramChart);
+      updateAxisWindow(diskChart);
     });
     loadThresholdsFromPrefs();
     populateThresholdFields();
@@ -229,25 +233,16 @@ public class DashboardController {
     cpuChart.getData().add(cpuSeries);
     ramChart.getData().add(ramSeries);
     diskChart.getData().add(diskSeries);
-    cpuChart.getData().addAll(cpuWarnSeries, cpuCritSeries);
-    ramChart.getData().addAll(ramWarnSeries, ramCritSeries);
-    diskChart.getData().addAll(diskWarnSeries, diskCritSeries);
     cpuSeries.setName("CPU %");
     ramSeries.setName("RAM %");
     diskSeries.setName("Disk %");
-    cpuWarnSeries.setName("CPU Warn");
-    cpuCritSeries.setName("CPU Crit");
-    ramWarnSeries.setName("RAM Warn");
-    ramCritSeries.setName("RAM Crit");
-    diskWarnSeries.setName("Disk Warn");
-    diskCritSeries.setName("Disk Crit");
     configureChartAxes(cpuChart);
     configureChartAxes(ramChart);
     configureChartAxes(diskChart);
     cpuChart.setTitle("CPU %");
     ramChart.setTitle("RAM %");
     diskChart.setTitle("Disk %");
-    addThresholdLines();
+    applyThresholds();
 
     // Update charts when selection changes
     agentsTable.getSelectionModel().selectedItemProperty().addListener((obs, oldR, newR) -> {
@@ -270,6 +265,10 @@ public class DashboardController {
       selectedAgentLabel.setText(newR.getAgentId());
     });
 
+    if (Boolean.parseBoolean(System.getProperty("ui.demo", "false"))) {
+      switchToDemo();
+    }
+
     startPolling();
   }
 
@@ -277,9 +276,15 @@ public class DashboardController {
   public void onConnect() {
     String host = hostField.getText().trim();
     client = new RmiMonitoringClient(host);
-    useRmi = true;
+    mode = BackendMode.RMI;
     connectionLabel.setText("Connecting...");
+    connectionDot.getStyleClass().setAll("status-dot", "disconnected");
     lastAlertsTs.set(System.currentTimeMillis());
+  }
+
+  @FXML
+  public void onDemoData() {
+    switchToDemo();
   }
 
   @FXML
@@ -304,8 +309,7 @@ public class DashboardController {
         lastAlertsTs.set(now);
 
         Platform.runLater(() -> {
-          connectionLabel.setText("Connected (" + Instant.ofEpochMilli(now) + ")");
-          connectionDot.getStyleClass().setAll("status-dot", "connected");
+          updateConnectionUi(now);
           updateAgents(agents);
           handleAlerts(alerts);
           updateChartsFromSelection();
@@ -313,13 +317,7 @@ public class DashboardController {
 
       } catch (Exception ex) {
         Platform.runLater(() -> {
-          connectionLabel.setText("Disconnected");
-          connectionDot.getStyleClass().setAll("status-dot", "disconnected");
-          if (useRmi) {
-            client = new FakeMonitoringClient();
-            useRmi = false;
-            connectionLabel.setText("Disconnected (fallback Fake)");
-          }
+          switchToDisconnected();
         });
       }
     }, 0, SystemConstants.UI_POLL_INTERVAL_MS, TimeUnit.MILLISECONDS);
@@ -333,22 +331,61 @@ public class DashboardController {
 
     updateKpiCounts();
 
-    if (!backingList.isEmpty()) {
-      // Reselect same agent if still present, else fallback to first
-      if (selectedId != null) {
-        backingList.stream()
-            .filter(r -> selectedId.equals(r.getAgentId()))
-            .findFirst()
-            .ifPresentOrElse(
-                r -> {
-                  suppressSelectionReset = true;
-                  agentsTable.getSelectionModel().select(r);
-                },
-                () -> agentsTable.getSelectionModel().select(0));
-      } else {
-        agentsTable.getSelectionModel().select(0);
-      }
+    if (backingList.isEmpty()) {
+      agentsTable.getSelectionModel().clearSelection();
+      selectedAgentLabel.setText("-");
+      updateSelectedKpis(null);
+      resetCharts();
+      chartX = 0;
+      return;
     }
+
+    // Reselect same agent if still present, else fallback to first
+    if (selectedId != null) {
+      backingList.stream()
+          .filter(r -> selectedId.equals(r.getAgentId()))
+          .findFirst()
+          .ifPresentOrElse(
+              r -> {
+                suppressSelectionReset = true;
+                agentsTable.getSelectionModel().select(r);
+              },
+              () -> agentsTable.getSelectionModel().select(0));
+    } else {
+      agentsTable.getSelectionModel().select(0);
+    }
+
+    if (pendingThresholdPush && mode == BackendMode.RMI) {
+      pushThresholdsToServer();
+    }
+  }
+
+  private void updateConnectionUi(long now) {
+    if (mode == BackendMode.RMI) {
+      connectionLabel.setText("Connected (" + Instant.ofEpochMilli(now) + ")");
+      connectionDot.getStyleClass().setAll("status-dot", "connected");
+    } else if (mode == BackendMode.DEMO) {
+      connectionLabel.setText("Demo data");
+      connectionDot.getStyleClass().setAll("status-dot", "demo");
+    } else {
+      connectionLabel.setText("Disconnected");
+      connectionDot.getStyleClass().setAll("status-dot", "disconnected");
+    }
+  }
+
+  private void switchToDemo() {
+    client = new FakeMonitoringClient();
+    mode = BackendMode.DEMO;
+    lastAlertsTs.set(System.currentTimeMillis());
+    connectionLabel.setText("Demo data");
+    connectionDot.getStyleClass().setAll("status-dot", "demo");
+  }
+
+  private void switchToDisconnected() {
+    client = new DisconnectedMonitoringClient();
+    mode = BackendMode.DISCONNECTED;
+    connectionLabel.setText("Disconnected");
+    connectionDot.getStyleClass().setAll("status-dot", "disconnected");
   }
 
   private void handleAlerts(List<AlertEvent> alerts) {
@@ -425,10 +462,9 @@ public class DashboardController {
     trimSeries(cpuSeries);
     trimSeries(ramSeries);
     trimSeries(diskSeries);
-    boolean c1 = updateAxisWindow(cpuChart);
-    boolean c2 = updateAxisWindow(ramChart);
-    boolean c3 = updateAxisWindow(diskChart);
-    if (c1 || c2 || c3) addThresholdLines();
+    updateAxisWindow(cpuChart);
+    updateAxisWindow(ramChart);
+    updateAxisWindow(diskChart);
     attachTooltip(cpuSeries);
     attachTooltip(ramSeries);
     attachTooltip(diskSeries);
@@ -439,9 +475,10 @@ public class DashboardController {
     s.getData().removeIf(d -> d.getXValue().doubleValue() < cutoff);
   }
 
-  private void configureChartAxes(LineChart<Number, Number> chart) {
+  private void configureChartAxes(ThresholdLineChart chart) {
     NumberAxis x = (NumberAxis) chart.getXAxis();
     NumberAxis y = (NumberAxis) chart.getYAxis();
+    chart.setAnimated(false);
     x.setAutoRanging(false);
     x.setLowerBound(0);
     x.setUpperBound(chartWindowSizeSec);
@@ -452,7 +489,7 @@ public class DashboardController {
     y.setTickUnit(10);
   }
 
-  private boolean updateAxisWindow(LineChart<Number, Number> chart) {
+  private boolean updateAxisWindow(ThresholdLineChart chart) {
     NumberAxis x = (NumberAxis) chart.getXAxis();
     int window = chartWindowSizeSec;
     int lower = Math.max(0, chartX - window);
@@ -546,23 +583,10 @@ public class DashboardController {
     });
   }
 
-  private void addThresholdLines() {
-    refreshThresholdSeries(cpuWarnSeries, cpuWarn, cpuChart);
-    refreshThresholdSeries(cpuCritSeries, cpuCrit, cpuChart);
-    refreshThresholdSeries(ramWarnSeries, ramWarn, ramChart);
-    refreshThresholdSeries(ramCritSeries, ramCrit, ramChart);
-    refreshThresholdSeries(diskWarnSeries, diskWarn, diskChart);
-    refreshThresholdSeries(diskCritSeries, diskCrit, diskChart);
-  }
-
-  private void refreshThresholdSeries(XYChart.Series<Number, Number> s, double value, LineChart<Number, Number> chart) {
-    NumberAxis x = (NumberAxis) chart.getXAxis();
-    double lower = x.getLowerBound();
-    double upper = x.getUpperBound();
-    s.getData().setAll(
-        new XYChart.Data<>(lower, value),
-        new XYChart.Data<>(upper, value)
-    );
+  private void applyThresholds() {
+    cpuChart.setThresholds(cpuWarn, cpuCrit);
+    ramChart.setThresholds(ramWarn, ramCrit);
+    diskChart.setThresholds(diskWarn, diskCrit);
   }
 
   private void attachTooltip(XYChart.Series<Number, Number> series) {
@@ -706,7 +730,8 @@ public class DashboardController {
       ramWarn = rWarn; ramCrit = rCrit;
       diskWarn = dWarn; diskCrit = dCrit;
       saveThresholdsToPrefs();
-      addThresholdLines();
+      applyThresholds();
+      pushThresholdsToServer();
       thresholdErrorLabel.setText("Saved");
     } catch (IllegalArgumentException ex) {
       thresholdErrorLabel.setText(ex.getMessage());
@@ -720,7 +745,7 @@ public class DashboardController {
     diskWarn = DEF_DISK_WARN; diskCrit = DEF_DISK_CRIT;
     populateThresholdFields();
     saveThresholdsToPrefs();
-    addThresholdLines();
+    applyThresholds();
     thresholdErrorLabel.setText("Defaults loaded");
   }
 
@@ -795,5 +820,39 @@ public class DashboardController {
       alertTimestamps.removeFirst();
     }
     kpiAlerts.setText(Integer.toString(alertTimestamps.size()));
+  }
+
+  private ThresholdConfig buildThresholdConfig() {
+    ThresholdConfig cfg = new ThresholdConfig();
+    cfg.cpuWarnPct = cpuWarn;
+    cfg.cpuCritPct = cpuCrit;
+    cfg.ramWarnPct = ramWarn;
+    cfg.ramCritPct = ramCrit;
+    cfg.diskWarnPct = diskWarn;
+    cfg.diskCritPct = diskCrit;
+    return cfg;
+  }
+
+  private void pushThresholdsToServer() {
+    if (mode != BackendMode.RMI) {
+      pendingThresholdPush = true;
+      return;
+    }
+    if (backingList.isEmpty()) {
+      pendingThresholdPush = true;
+      return;
+    }
+    pendingThresholdPush = false;
+    ThresholdConfig cfg = buildThresholdConfig();
+    List<AgentRow> agents = new ArrayList<>(backingList);
+    CompletableFuture.runAsync(() -> {
+      for (AgentRow r : agents) {
+        try {
+          client.setThresholds(r.getAgentId(), cfg);
+        } catch (Exception ex) {
+          ex.printStackTrace();
+        }
+      }
+    });
   }
 }

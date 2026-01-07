@@ -2,11 +2,39 @@ package edu.ds.monitoring.server;
 
 import edu.ds.monitoring.common.dto.AgentSnapshot;
 import edu.ds.monitoring.common.dto.AgentStatus;
+import edu.ds.monitoring.common.dto.MetricSample;
 import edu.ds.monitoring.common.dto.ThresholdConfig;
 import edu.ds.monitoring.server.SimpleJson;
 
 public final class SnapshotParser {
     private SnapshotParser() {}
+
+    public static MetricSample metricFromJson(String json) {
+        String agentId = SimpleJson.getString(json, "agentId");
+        if (agentId == null) return null;
+
+        String host = SimpleJson.getString(json, "host");
+        String ip = SimpleJson.getString(json, "ip");
+        Long ts = SimpleJson.getLong(json, "ts");
+
+        Double cpuPct = SimpleJson.getDouble(json, "cpuPct");
+        Long ramUsed = SimpleJson.getLong(json, "ramUsedBytes");
+        Long ramTotal = SimpleJson.getLong(json, "ramTotalBytes");
+        Long diskUsed = SimpleJson.getLong(json, "diskUsedBytes");
+        Long diskTotal = SimpleJson.getLong(json, "diskTotalBytes");
+
+        MetricSample m = new MetricSample();
+        m.agentId = agentId;
+        m.host = host;
+        m.ip = ip;
+        m.ts = ts != null ? ts : System.currentTimeMillis();
+        m.cpuPct = cpuPct != null ? cpuPct : 0.0;
+        m.ramUsedBytes = ramUsed != null ? ramUsed : 0L;
+        m.ramTotalBytes = ramTotal != null ? ramTotal : 0L;
+        m.diskUsedBytes = diskUsed != null ? diskUsed : 0L;
+        m.diskTotalBytes = diskTotal != null ? diskTotal : 0L;
+        return m;
+    }
 
     public static AgentSnapshot fromJson(String json, ThresholdConfig th) {
     String agentId = SimpleJson.getString(json, "agentId");

@@ -8,5 +8,6 @@ public final class NetConfig {
     public static final long OFFLINE_TIMEOUT_MS = 15_000; // 15s (à ajuster)
     public static final long OFFLINE_CHECK_PERIOD_MS = 2_000; // check toutes les 2s
     public static final int TCP_ALERT_PORT = 9998;
+    public static final int REST_PORT = 8080;
 
 }

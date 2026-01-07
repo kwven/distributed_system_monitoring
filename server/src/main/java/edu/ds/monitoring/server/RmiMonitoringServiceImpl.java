@@ -1,25 +1,31 @@
 package edu.ds.monitoring.server;
 
 import edu.ds.monitoring.common.api.MonitoringService;
-import edu.ds.monitoring.common.dto.*;
+import edu.ds.monitoring.common.dto.AlertEvent;
+import edu.ds.monitoring.common.dto.AgentSnapshot;
+import edu.ds.monitoring.common.dto.MetricSample;
+import edu.ds.monitoring.common.dto.ThresholdConfig;
 
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
 
 public class RmiMonitoringServiceImpl extends UnicastRemoteObject implements MonitoringService {
 
     private final AgentStore agentStore;
+    private final MetricStore metricStore;
+    private final AlertStore alertStore;
 
-    // seuils par agent (minimal)
-    private final ConcurrentHashMap<String, ThresholdConfig> thresholdsByAgent = new ConcurrentHashMap<>();
+    private final ThresholdStore thresholdStore;
 
-    public RmiMonitoringServiceImpl(AgentStore agentStore) throws RemoteException {
+    public RmiMonitoringServiceImpl(AgentStore agentStore, MetricStore metricStore, AlertStore alertStore, ThresholdStore thresholdStore) throws RemoteException {
         super();
         this.agentStore = agentStore;
+        this.metricStore = metricStore;
+        this.alertStore = alertStore;
+        this.thresholdStore = thresholdStore;
     }
 
     @Override
@@ -29,36 +35,24 @@ public class RmiMonitoringServiceImpl extends UnicastRemoteObject implements Mon
 
     @Override
     public List<AlertEvent> getAlertsSince(long sinceTs) throws RemoteException {
-        // Minimal nécessaire: si tu n’as pas encore un AlertStore<List<AlertEvent>>, renvoie vide.
-        return Collections.emptyList();
+        if (alertStore == null) return Collections.emptyList();
+        return alertStore.getSince(sinceTs);
     }
 
     @Override
     public List<MetricSample> getMetrics(String agentId, long fromTs, long toTs) throws RemoteException {
-        // Minimal nécessaire: si tu n’as pas encore un historique metrics, renvoie vide.
-        return Collections.emptyList();
+        if (metricStore == null) return Collections.emptyList();
+        return metricStore.getMetrics(agentId, fromTs, toTs);
     }
 
     @Override
     public ThresholdConfig getThresholds(String agentId) throws RemoteException {
-        // Retourner les seuils existants, sinon default
-        return thresholdsByAgent.computeIfAbsent(agentId, id -> defaultThresholds());
+        return thresholdStore.get(agentId);
     }
 
     @Override
     public void setThresholds(String agentId, ThresholdConfig cfg) throws RemoteException {
-        if (agentId == null || cfg == null) return;
-        thresholdsByAgent.put(agentId, cfg);
+        thresholdStore.set(agentId, cfg);
     }
 
-    private ThresholdConfig defaultThresholds() {
-        ThresholdConfig th = new ThresholdConfig();
-        th.cpuWarnPct = 70;
-        th.cpuCritPct = 90;
-        th.ramWarnPct = 75;
-        th.ramCritPct = 90;
-        th.diskWarnPct = 80;
-        th.diskCritPct = 95;
-        return th;
-    }
 }

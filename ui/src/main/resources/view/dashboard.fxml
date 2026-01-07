@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import javafx.geometry.Insets?>
-<?import javafx.scene.chart.LineChart?>
 <?import javafx.scene.chart.NumberAxis?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
+<?import edu.ds.monitoring.ui.control.ThresholdLineChart?>
 
 <BorderPane xmlns="http://javafx.com/javafx"
             xmlns:fx="http://javafx.com/fxml"
@@ -19,6 +19,7 @@
         <Label text="RMI Host:"/>
         <TextField fx:id="hostField" prefWidth="180"/>
         <Button text="Connect" onAction="#onConnect"/>
+        <Button text="Demo data" onAction="#onDemoData"/>
         <Label fx:id="connectionDot" text="●" styleClass="status-dot"/>
         <Label fx:id="connectionLabel" text="Disconnected"/>
       </HBox>
@@ -98,18 +99,9 @@
           <Label text="Window:"/>
           <ComboBox fx:id="chartWindowCombo" prefWidth="120"/>
         </HBox>
-                <LineChart fx:id="cpuChart">
-                  <xAxis><NumberAxis /></xAxis>
-                  <yAxis><NumberAxis /></yAxis>
-                </LineChart>
-                <LineChart fx:id="ramChart">
-                  <xAxis><NumberAxis /></xAxis>
-                  <yAxis><NumberAxis /></yAxis>
-                </LineChart>
-                <LineChart fx:id="diskChart">
-                  <xAxis><NumberAxis /></xAxis>
-                  <yAxis><NumberAxis /></yAxis>
-                </LineChart>
+                <ThresholdLineChart fx:id="cpuChart"/>
+                <ThresholdLineChart fx:id="ramChart"/>
+                <ThresholdLineChart fx:id="diskChart"/>
               </VBox>
             </SplitPane>
           </content>

@@ -7,22 +7,24 @@ import java.net.SocketException;
 import java.nio.charset.StandardCharsets;
 
 import edu.ds.monitoring.common.dto.AgentSnapshot;
+import edu.ds.monitoring.common.dto.MetricSample;
 import edu.ds.monitoring.common.dto.ThresholdConfig;
 import edu.ds.monitoring.server.NetConfig;
-import edu.ds.monitoring.server.SimpleJson;
 
 public class UdpMetricsServer implements Runnable {
 
     private final AgentStore store;
-    private final ThresholdConfig thresholds;
+    private final MetricStore metricStore;
+    private final ThresholdStore thresholdStore;
     private final int port;
     private volatile boolean running = true;
     private DatagramSocket socket;
 
-    public UdpMetricsServer(int port, AgentStore store, ThresholdConfig thresholds ) {
+    public UdpMetricsServer(int port, AgentStore store, MetricStore metricStore, ThresholdStore thresholdStore ) {
         this.port = port;
         this.store = store;
-        this.thresholds = thresholds;
+        this.metricStore = metricStore;
+        this.thresholdStore = thresholdStore;
     }
 
     public void stop() {
@@ -50,7 +52,12 @@ public class UdpMetricsServer implements Runnable {
                         packet.getLength(),
                         StandardCharsets.UTF_8
                 );
-                AgentSnapshot snapshot = SnapshotParser.fromJson(msg, thresholds);
+                MetricSample metric = SnapshotParser.metricFromJson(msg);
+                if (metric != null) {
+                    metricStore.add(metric);
+                }
+                ThresholdConfig th = thresholdStore.get(metric != null ? metric.agentId : null);
+                AgentSnapshot snapshot = SnapshotParser.fromJson(msg, th);
                 if (snapshot == null) {
                     System.err.println("[UDP] Invalid snapshot -> " + msg);
                     continue;

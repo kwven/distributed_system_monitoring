@@ -110,6 +110,15 @@
 .default-color2.chart-line-symbol { -fx-background-color: #f97316, #0f1117; }
 .chart-line-symbol { -fx-padding: 2; -fx-background-radius: 3; }
 
+/* Threshold overlay lines */
+.threshold-line {
+  -fx-stroke-width: 1.5;
+  -fx-stroke-dash-array: 6 6;
+  -fx-opacity: 0.85;
+}
+.threshold-warn { -fx-stroke: #f97316; }
+.threshold-crit { -fx-stroke: #a855f7; }
+
 /* Text colors in controls */
 .chart-title, .axis-label, .axis-tick-mark, .axis-tick-label {
   -fx-text-fill: #cbd5e1;
@@ -193,3 +202,4 @@
 }
 .status-dot.connected { -fx-text-fill: #22c55e; }
 .status-dot.disconnected { -fx-text-fill: #ef4444; }
+.status-dot.demo { -fx-text-fill: #f59e0b; }
