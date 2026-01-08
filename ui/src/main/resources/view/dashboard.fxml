@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.chart.NumberAxis?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import edu.ds.monitoring.ui.control.ThresholdLineChart?>
+
+<BorderPane xmlns="http://javafx.com/javafx"
+            xmlns:fx="http://javafx.com/fxml"
+            fx:controller="edu.ds.monitoring.ui.controller.DashboardController">
+
+  <top>
+    <VBox spacing="10">
+      <padding><Insets top="10" right="10" bottom="10" left="10"/></padding>
+      <HBox spacing="10" alignment="CENTER_LEFT">
+        <Label text="Monitoring Dashboard" style="-fx-font-size: 18px; -fx-font-weight: bold;" />
+        <Region HBox.hgrow="ALWAYS" />
+        <Label text="RMI Host:"/>
+        <TextField fx:id="hostField" prefWidth="180"/>
+        <Button text="Connect" onAction="#onConnect"/>
+        <Button text="Demo data" onAction="#onDemoData"/>
+        <Label fx:id="connectionDot" text="●" styleClass="status-dot"/>
+        <Label fx:id="connectionLabel" text="Disconnected"/>
+      </HBox>
+      <HBox spacing="10">
+        <HBox spacing="6" styleClass="kpi-card">
+          <Label text="Online" styleClass="kpi-label"/>
+          <Label fx:id="kpiOnline" styleClass="kpi-value"/>
+        </HBox>
+        <HBox spacing="6" styleClass="kpi-card warn">
+          <Label text="Warn" styleClass="kpi-label"/>
+          <Label fx:id="kpiWarn" styleClass="kpi-value"/>
+        </HBox>
+        <HBox spacing="6" styleClass="kpi-card critical">
+          <Label text="Critical" styleClass="kpi-label"/>
+          <Label fx:id="kpiCritical" styleClass="kpi-value"/>
+        </HBox>
+        <HBox spacing="6" styleClass="kpi-card offline">
+          <Label text="Offline" styleClass="kpi-label"/>
+          <Label fx:id="kpiOffline" styleClass="kpi-value"/>
+        </HBox>
+        <HBox spacing="6" styleClass="kpi-card">
+          <Label text="Alerts 5m" styleClass="kpi-label"/>
+          <Label fx:id="kpiAlerts" styleClass="kpi-value"/>
+        </HBox>
+        <Region HBox.hgrow="ALWAYS"/>
+        <HBox spacing="6" styleClass="kpi-card">
+          <Label text="CPU" styleClass="kpi-label"/>
+          <Label fx:id="kpiSelCpu" styleClass="kpi-value"/>
+        </HBox>
+        <HBox spacing="6" styleClass="kpi-card">
+          <Label text="RAM" styleClass="kpi-label"/>
+          <Label fx:id="kpiSelRam" styleClass="kpi-value"/>
+        </HBox>
+        <HBox spacing="6" styleClass="kpi-card">
+          <Label text="Disk" styleClass="kpi-label"/>
+          <Label fx:id="kpiSelDisk" styleClass="kpi-value"/>
+        </HBox>
+      </HBox>
+    </VBox>
+  </top>
+
+  <center>
+    <TabPane tabClosingPolicy="UNAVAILABLE">
+      <tabs>
+        <Tab text="Dashboard">
+          <content>
+            <SplitPane dividerPositions="0.55">
+              <VBox spacing="10">
+                <padding><Insets top="10" right="10" bottom="10" left="10"/></padding>
+                <HBox spacing="10">
+                  <Label text="Agents" style="-fx-font-size: 14px; -fx-font-weight: bold;"/>
+                  <Region HBox.hgrow="ALWAYS"/>
+                  <Label text="Search:"/>
+                  <TextField fx:id="searchField" prefWidth="220"/>
+                  <Button text="Details" onAction="#onShowDetails"/>
+                </HBox>
+
+                <TableView fx:id="agentsTable" VBox.vgrow="ALWAYS">
+                  <columns>
+                    <TableColumn fx:id="colAgent" text="Agent"/>
+                    <TableColumn fx:id="colHost" text="Host"/>
+                    <TableColumn fx:id="colIp" text="IP"/>
+                    <TableColumn fx:id="colLastSeen" text="Last Seen"/>
+                    <TableColumn fx:id="colCpu" text="CPU %"/>
+                    <TableColumn fx:id="colRam" text="RAM %"/>
+                    <TableColumn fx:id="colDisk" text="Disk %"/>
+                    <TableColumn fx:id="colStatus" text="Status"/>
+                  </columns>
+                </TableView>
+              </VBox>
+
+              <VBox spacing="10">
+                <padding><Insets top="10" right="10" bottom="10" left="10"/></padding>
+        <HBox spacing="10" alignment="CENTER_LEFT">
+          <Label text="Live Charts for" style="-fx-font-size: 14px; -fx-font-weight: bold;"/>
+          <Label fx:id="selectedAgentLabel" text="-" style="-fx-font-size: 14px; -fx-font-weight: bold;"/>
+          <Label text="Window:"/>
+          <ComboBox fx:id="chartWindowCombo" prefWidth="120"/>
+        </HBox>
+                <ThresholdLineChart fx:id="cpuChart"/>
+                <ThresholdLineChart fx:id="ramChart"/>
+                <ThresholdLineChart fx:id="diskChart"/>
+              </VBox>
+            </SplitPane>
+          </content>
+        </Tab>
+        <Tab text="Alerts">
+          <content>
+            <VBox spacing="10">
+              <padding><Insets top="10" right="10" bottom="10" left="10"/></padding>
+              <HBox spacing="10" alignment="CENTER_LEFT">
+                <Label text="Recent alerts" style="-fx-font-size: 14px; -fx-font-weight: bold;"/>
+                <Region HBox.hgrow="ALWAYS"/>
+                <Label text="Agent:"/>
+                <ComboBox fx:id="alertsAgentFilter" prefWidth="160"/>
+                <Label text="Severity:"/>
+                <ComboBox fx:id="alertsSeverityFilter" prefWidth="120"/>
+                <Label fx:id="recentAlertsCounter" text="0 recent / 0 total"/>
+                <Button text="Export CSV" onAction="#onExportAlertsCsv"/>
+              </HBox>
+              <TableView fx:id="recentAlertsTable" VBox.vgrow="ALWAYS">
+                <columns>
+                  <TableColumn fx:id="colAlertTs" text="Time"/>
+                  <TableColumn fx:id="colAlertAgent" text="Agent"/>
+                  <TableColumn fx:id="colAlertSeverity" text="Severity"/>
+                  <TableColumn fx:id="colAlertMetric" text="Metric"/>
+                  <TableColumn fx:id="colAlertValue" text="Value"/>
+                  <TableColumn fx:id="colAlertThreshold" text="Threshold"/>
+                  <TableColumn fx:id="colAlertMessage" text="Message" prefWidth="280"/>
+                </columns>
+              </TableView>
+            </VBox>
+          </content>
+        </Tab>
+        <Tab text="Settings">
+          <content>
+            <VBox spacing="12">
+              <padding><Insets top="10" right="10" bottom="10" left="10"/></padding>
+              <Label text="Thresholds" style="-fx-font-size: 14px; -fx-font-weight: bold;"/>
+              <GridPane hgap="10" vgap="8">
+                <columnConstraints>
+                  <ColumnConstraints minWidth="80" prefWidth="100"/>
+                  <ColumnConstraints minWidth="60" prefWidth="70"/>
+                  <ColumnConstraints minWidth="80" prefWidth="90"/>
+                  <ColumnConstraints minWidth="60" prefWidth="70"/>
+                  <ColumnConstraints minWidth="80" prefWidth="90"/>
+                </columnConstraints>
+                <rowConstraints>
+                  <RowConstraints/><RowConstraints/><RowConstraints/>
+                </rowConstraints>
+                <Label text="CPU" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+                <Label text="Warn" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+                <TextField fx:id="cpuWarnField" prefWidth="80" GridPane.rowIndex="0" GridPane.columnIndex="2"/>
+                <Label text="Crit" GridPane.rowIndex="0" GridPane.columnIndex="3"/>
+                <TextField fx:id="cpuCritField" prefWidth="80" GridPane.rowIndex="0" GridPane.columnIndex="4"/>
+
+                <Label text="RAM" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+                <Label text="Warn" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+                <TextField fx:id="ramWarnField" prefWidth="80" GridPane.rowIndex="1" GridPane.columnIndex="2"/>
+                <Label text="Crit" GridPane.rowIndex="1" GridPane.columnIndex="3"/>
+                <TextField fx:id="ramCritField" prefWidth="80" GridPane.rowIndex="1" GridPane.columnIndex="4"/>
+
+                <Label text="Disk" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+                <Label text="Warn" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+                <TextField fx:id="diskWarnField" prefWidth="80" GridPane.rowIndex="2" GridPane.columnIndex="2"/>
+                <Label text="Crit" GridPane.rowIndex="2" GridPane.columnIndex="3"/>
+                <TextField fx:id="diskCritField" prefWidth="80" GridPane.rowIndex="2" GridPane.columnIndex="4"/>
+              </GridPane>
+
+              <Label fx:id="thresholdErrorLabel" textFill="red"/>
+
+              <HBox spacing="10" alignment="CENTER_RIGHT">
+                <Region HBox.hgrow="ALWAYS"/>
+                <Button text="Load defaults" onAction="#onLoadThresholdDefaults"/>
+                <Button text="Save" onAction="#onSaveThresholds"/>
+              </HBox>
+            </VBox>
+          </content>
+        </Tab>
+      </tabs>
+    </TabPane>
+  </center>
+
+  <bottom>
+    <HBox spacing="10">
+      <padding><Insets top="10" right="10" bottom="10" left="10"/></padding>
+      <Label text="Alerts:" style="-fx-font-weight: bold;"/>
+      <Label fx:id="alertsLabel" text="0 new"/>
+    </HBox>
+  </bottom>
+
+</BorderPane>
