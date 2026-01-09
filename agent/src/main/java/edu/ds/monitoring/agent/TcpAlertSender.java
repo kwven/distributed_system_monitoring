@@ -13,19 +13,14 @@ public class TcpAlertSender {
     }
 
     public void sendAlert(String jsonAlert) {
-        try {
-            Socket socket = new Socket(serverHost, port);
-            OutputStream output = socket.getOutputStream();
+        try (Socket socket = new Socket(serverHost, port);
+             OutputStream output = socket.getOutputStream()) {
 
-            // NDJSON: une ligne JSON par alerte
-            String ndjson = jsonAlert + "\n"; // Ajouter saut de ligne
+            String ndjson = jsonAlert + "\n";
             output.write(ndjson.getBytes("UTF-8"));
             output.flush();
-            output.close();
-            socket.close();
 
             System.out.println("Alerte TCP NDJSON: " + jsonAlert);
-
         } catch (Exception e) {
             System.err.println("Erreur TCP: " + e.getMessage());
         }
